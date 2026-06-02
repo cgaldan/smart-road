@@ -1,3 +1,5 @@
+mod renderer;
+
 use sdl2::event::{Event};
 use sdl2::keyboard::Keycode;
 
@@ -17,11 +19,10 @@ fn main() {
         .unwrap();
 
     let mut canvas = window.into_canvas().build().unwrap();
+    renderer::draw(&mut canvas);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
-    
-    canvas.present();
-    
+        
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -34,4 +35,5 @@ fn main() {
             }
         }
     }
+
 }
