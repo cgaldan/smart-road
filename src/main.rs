@@ -7,6 +7,7 @@ use std::time::Duration;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::video::FullscreenType;
+use models::Layout;
 
 pub const WINDOW_W: u32 = 800;
 pub const WINDOW_H: u32 = 800;
@@ -54,7 +55,9 @@ fn main() {
             }
         }
 
-        renderer::draw(&mut canvas);
+        let (w, h) = canvas.window().size();
+        let layout = Layout::new(w, h);
+        renderer::draw(&mut canvas, &layout);
         sleep(Duration::from_millis(16));
     }
 
