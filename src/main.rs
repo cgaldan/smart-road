@@ -1,7 +1,12 @@
 mod renderer;
+mod models;
 
-use sdl2::event::{Event};
+use std::thread::sleep;
+use std::time::Duration;
+
+use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use sdl2::video::FullscreenType;
 
 pub const WINDOW_W: u32 = 800;
 pub const WINDOW_H: u32 = 800;
@@ -19,10 +24,10 @@ fn main() {
         .unwrap();
 
     let mut canvas = window.into_canvas().build().unwrap();
-    renderer::draw(&mut canvas);
-
     let mut event_pump = sdl_context.event_pump().unwrap();
-        
+
+    let mut fullscreen = true;
+
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -31,9 +36,26 @@ fn main() {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'running,
+                Event::KeyDown {
+                    keycode: Some(Keycode::F11),
+                    ..
+                } => {
+                    let next_mode = if fullscreen {
+                        FullscreenType::Off
+                    } else {
+                        FullscreenType::Desktop
+                    };
+
+                    if canvas.window_mut().set_fullscreen(next_mode).is_ok() {
+                        fullscreen = !fullscreen;
+                    }
+                }
                 _ => {}
             }
         }
+
+        renderer::draw(&mut canvas);
+        sleep(Duration::from_millis(16));
     }
 
 }
