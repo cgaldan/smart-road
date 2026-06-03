@@ -82,12 +82,17 @@ fn draw_h_dashes(canvas: &mut Canvas<Window>, layout: &models::Layout, cy: f32, 
 
 fn draw_stop_lines(canvas: &mut Canvas<Window>, layout: &models::Layout) {
     set_color(canvas, models::COLOR_STOP_LINE);
+    let nroad = layout.box_y_top();
+    let sroad = layout.box_y_bottom();
+    let wroad = layout.box_x_left();
+    let eroad = layout.box_x_right();
+    let w = layout.stop_line_thickness;
+    let lw = layout.lane_width;
 
-    let stop_line_width = layout.road_width / 2.0;
-    fill(canvas, rect(layout.cx, layout.box_y_bottom(), stop_line_width, layout.dash_width));
-    fill(canvas, rect(layout.box_x_right(), layout.cy - stop_line_width, layout.dash_width, stop_line_width));
-    fill(canvas, rect(layout.cx - stop_line_width, layout.box_y_top() - layout.dash_width, stop_line_width, layout.dash_width));
-    fill(canvas, rect(layout.box_x_left() - layout.dash_width, layout.cy, layout.dash_width, stop_line_width));
+    fill(canvas, rect(layout.cx, sroad, lw, w));
+    fill(canvas, rect(eroad, layout.cy - lw, w, lw));
+    fill(canvas, rect(layout.cx - lw, nroad - w, lw, w));
+    fill(canvas, rect(wroad - w, layout.cy, w, lw));
 }
 
 fn draw_traffic_lights(canvas: &mut Canvas<Window>, layout: &models::Layout) {

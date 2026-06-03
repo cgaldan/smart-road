@@ -11,11 +11,13 @@ pub const COLOR_LIGHT_RED: (u8, u8, u8) = (220, 40, 40);
 pub const BASE_DIM: u32 = 800;
 
 pub const ROAD_WIDTH: u32 = 300;
+pub const LANE_WIDTH: u32 = ROAD_WIDTH / 2;
 pub const LANE_COUNT: u32 = 6;
 
 pub const DASH_LENGTH: u32 = 30;
 pub const DASH_WIDTH: u32 = 2;
 pub const DASH_GAP: u32 = 8;
+pub const STOP_LINE_THICKNESS: u32 = 2;
 
 pub const LIGHT_SIZE: u32 = 12;
 pub const LIGHT_GAP: u32 = 4;
@@ -32,11 +34,13 @@ pub struct Layout {
     pub cx: f32,
     pub cy: f32,
     pub road_width: f32,
+    pub lane_width: f32,
     pub dash_length: f32,
     pub dash_width: f32,
     pub dash_gap: f32,
     pub light_size: f32,
     pub light_gap: f32,
+    pub stop_line_thickness: f32,
 }
 
 impl Layout {
@@ -51,11 +55,13 @@ impl Layout {
             cx: wf / 2.0,
             cy: hf / 2.0,
             road_width: ROAD_WIDTH as f32 * scale,
+            lane_width: LANE_WIDTH as f32 * scale,
             dash_length: DASH_LENGTH as f32 * scale,
             dash_width: px(DASH_WIDTH),
             dash_gap: DASH_GAP as f32 * scale,
             light_size: px(LIGHT_SIZE),
             light_gap: px(LIGHT_GAP),
+            stop_line_thickness: px(STOP_LINE_THICKNESS),
         }
     }
 
