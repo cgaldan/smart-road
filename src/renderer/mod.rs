@@ -13,6 +13,7 @@ pub fn draw( canvas: &mut Canvas<Window>, layout: &models::Layout) {
 
     draw_lane_dividers(canvas, layout);
     draw_stop_lines(canvas, layout);
+    draw_traffic_lights(canvas, layout);
     canvas.present();
 }
 
@@ -87,4 +88,30 @@ fn draw_stop_lines(canvas: &mut Canvas<Window>, layout: &models::Layout) {
     fill(canvas, rect(layout.box_x_right(), layout.cy - stop_line_width, layout.dash_width, stop_line_width));
     fill(canvas, rect(layout.cx - stop_line_width, layout.box_y_top() - layout.dash_width, stop_line_width, layout.dash_width));
     fill(canvas, rect(layout.box_x_left() - layout.dash_width, layout.cy, layout.dash_width, stop_line_width));
+}
+
+fn draw_traffic_lights(canvas: &mut Canvas<Window>, layout: &models::Layout) {
+    let nroad = layout.box_y_top();
+    let sroad = layout.box_y_bottom();
+    let wroad = layout.box_x_left();
+    let eroad = layout.box_x_right();
+    let size = layout.light_size;
+    let gap = layout.light_gap;
+
+    let lights = [
+        (models::Direction::N, eroad + gap, sroad + gap),
+        (models::Direction::S, wroad - gap - size, nroad - gap - size),
+        (models::Direction::W, eroad + gap, nroad - gap - size),
+        (models::Direction::E, wroad - gap - size, sroad + gap),
+    ];
+
+    set_color(canvas, models::COLOR_LIGHT_RED);
+    for (dir, x, y) in lights {
+        match dir {
+            models::Direction::N => fill(canvas, rect(x, y, size, size)),
+            models::Direction::S => fill(canvas, rect(x, y, size, size)),
+            models::Direction::W => fill(canvas, rect(x, y, size, size)),
+            models::Direction::E => fill(canvas, rect(x, y, size, size)),
+        }
+    }
 }
