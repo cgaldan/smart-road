@@ -1,6 +1,7 @@
 pub const COLOR_GROUND: (u8, u8, u8) = (96, 96, 96);
 pub const COLOR_ROAD: (u8, u8, u8) = (55, 58, 66);
 pub const COLOR_LANE_DIVIDER: (u8, u8, u8) = (200, 200, 160);
+pub const COLOR_STOP_LINE: (u8, u8, u8) = (230, 230, 230);
 
 pub const BASE_DIM: u32 = 800;
 

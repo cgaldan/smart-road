@@ -12,6 +12,7 @@ pub fn draw( canvas: &mut Canvas<Window>, layout: &models::Layout) {
     canvas.set_blend_mode(BlendMode::Blend);
 
     draw_lane_dividers(canvas, layout);
+    draw_stop_lines(canvas, layout);
     canvas.present();
 }
 
@@ -76,4 +77,14 @@ fn draw_h_dashes(canvas: &mut Canvas<Window>, layout: &models::Layout, cy: f32, 
             x += step;
         }
     }
+}
+
+fn draw_stop_lines(canvas: &mut Canvas<Window>, layout: &models::Layout) {
+    set_color(canvas, models::COLOR_STOP_LINE);
+
+    let stop_line_width = layout.road_width / 2.0;
+    fill(canvas, rect(layout.cx, layout.box_y_max(), stop_line_width, layout.dash_width));
+    fill(canvas, rect(layout.box_x_max(), layout.cy - stop_line_width, layout.dash_width, stop_line_width));
+    fill(canvas, rect(layout.cx - stop_line_width, layout.box_y_min() - layout.dash_width, stop_line_width, layout.dash_width));
+    fill(canvas, rect(layout.box_x_min() - layout.dash_width, layout.cy, layout.dash_width, stop_line_width));
 }
