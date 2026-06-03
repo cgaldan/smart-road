@@ -23,28 +23,28 @@ fn draw_background(canvas: &mut Canvas<Window>) {
 
 fn draw_roads(canvas: &mut Canvas<Window>, layout: &models::Layout) {
     set_color(canvas, models::COLOR_ROAD);
-    fill(canvas, rect(layout.box_x_min(), 0.0, layout.road_width, layout.h));
-    fill(canvas, rect(0.0, layout.box_y_min(), layout.w, layout.road_width));
+    fill(canvas, rect(layout.box_x_left(), 0.0, layout.road_width, layout.h));
+    fill(canvas, rect(0.0, layout.box_y_top(), layout.w, layout.road_width));
 }
 
 fn draw_lane_dividers(canvas: &mut Canvas<Window>, layout: &models::Layout) {
     set_color(canvas, models::COLOR_LANE_DIVIDER);
 
     draw_main_divider(canvas, layout, layout.cx, layout.cy);
-    draw_v_dashes(canvas, layout, layout.cx, 0.0, layout.box_y_min());
-    draw_v_dashes(canvas, layout, layout.cx, layout.box_y_max(), layout.h);
-    draw_h_dashes(canvas, layout, layout.cy, 0.0, layout.box_x_min());
-    draw_h_dashes(canvas, layout, layout.cy, layout.box_x_max(), layout.w);
+    draw_v_dashes(canvas, layout, layout.cx, 0.0, layout.box_y_top());
+    draw_v_dashes(canvas, layout, layout.cx, layout.box_y_bottom(), layout.h);
+    draw_h_dashes(canvas, layout, layout.cy, 0.0, layout.box_x_left());
+    draw_h_dashes(canvas, layout, layout.cy, layout.box_x_right(), layout.w);
 }
 
 fn draw_main_divider(canvas: &mut Canvas<Window>, layout: &models::Layout, cx: f32, cy: f32) {
     set_color(canvas, models::COLOR_LANE_DIVIDER);
 
     let main_dash_width = layout.dash_width * 2.0;
-    fill(canvas, rect(cx, 0.0, main_dash_width, layout.box_y_min()));
-    fill(canvas, rect(0.0, cy, layout.box_x_min(), main_dash_width));
-    fill(canvas, rect(cx, layout.box_y_max(), main_dash_width, layout.h - layout.box_y_max()));
-    fill(canvas, rect(layout.box_x_max(), cy, layout.w - layout.box_x_max(), main_dash_width));
+    fill(canvas, rect(cx, 0.0, main_dash_width, layout.box_y_top()));
+    fill(canvas, rect(0.0, cy, layout.box_x_left(), main_dash_width));
+    fill(canvas, rect(cx, layout.box_y_bottom(), main_dash_width, layout.h - layout.box_y_bottom()));
+    fill(canvas, rect(layout.box_x_right(), cy, layout.w - layout.box_x_right(), main_dash_width));
 }
 
 fn draw_v_dashes(canvas: &mut Canvas<Window>, layout: &models::Layout, cx: f32, y_start: f32, y_end: f32) {
@@ -83,8 +83,8 @@ fn draw_stop_lines(canvas: &mut Canvas<Window>, layout: &models::Layout) {
     set_color(canvas, models::COLOR_STOP_LINE);
 
     let stop_line_width = layout.road_width / 2.0;
-    fill(canvas, rect(layout.cx, layout.box_y_max(), stop_line_width, layout.dash_width));
-    fill(canvas, rect(layout.box_x_max(), layout.cy - stop_line_width, layout.dash_width, stop_line_width));
-    fill(canvas, rect(layout.cx - stop_line_width, layout.box_y_min() - layout.dash_width, stop_line_width, layout.dash_width));
-    fill(canvas, rect(layout.box_x_min() - layout.dash_width, layout.cy, layout.dash_width, stop_line_width));
+    fill(canvas, rect(layout.cx, layout.box_y_bottom(), stop_line_width, layout.dash_width));
+    fill(canvas, rect(layout.box_x_right(), layout.cy - stop_line_width, layout.dash_width, stop_line_width));
+    fill(canvas, rect(layout.cx - stop_line_width, layout.box_y_top() - layout.dash_width, stop_line_width, layout.dash_width));
+    fill(canvas, rect(layout.box_x_left() - layout.dash_width, layout.cy, layout.dash_width, stop_line_width));
 }

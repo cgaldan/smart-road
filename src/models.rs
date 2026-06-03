@@ -30,7 +30,7 @@ impl Layout {
         let wf = w.max(1) as f32;
         let hf = h.max(1) as f32;
         let scale = w.min(h).max(1) as f32 / BASE_DIM as f32;
-        // let px = |base: u32| (base as f32 * scale).max(1.0);
+        let px = |base: u32| (base as f32 * scale).max(1.0);
         Self {
             w: wf,
             h: hf,
@@ -38,13 +38,13 @@ impl Layout {
             cy: hf / 2.0,
             road_width: ROAD_WIDTH as f32 * scale,
             dash_length: DASH_LENGTH as f32 * scale,
-            dash_width: DASH_WIDTH as f32 * scale,
+            dash_width: px(DASH_WIDTH),
             dash_gap: DASH_GAP as f32 * scale,
         }
     }
 
-    pub fn box_x_max(&self) -> f32 { self.cx + self.road_width / 2.0 }
-    pub fn box_y_max(&self) -> f32 { self.cy + self.road_width / 2.0 }
-    pub fn box_x_min(&self) -> f32 { self.cx - self.road_width / 2.0 }
-    pub fn box_y_min(&self) -> f32 { self.cy - self.road_width / 2.0 }
+    pub fn box_x_right(&self) -> f32 { self.cx + self.road_width / 2.0 }
+    pub fn box_y_bottom(&self) -> f32 { self.cy + self.road_width / 2.0 }
+    pub fn box_x_left(&self) -> f32 { self.cx - self.road_width / 2.0 }
+    pub fn box_y_top(&self) -> f32 { self.cy - self.road_width / 2.0 }
 }
