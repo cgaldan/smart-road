@@ -112,7 +112,7 @@ fn draw_traffic_lights(canvas: &mut Canvas<Window>, layout: &models::Layout) {
         (models::Direction::E, wroad - gap - size, sroad + gap),
     ];
 
-    set_color(canvas, models::COLOR_LIGHT_RED);
+    set_color(canvas, models::COLOR_NOT_WORKING_LIGHT);
     for (dir, x, y) in lights {
         match dir {
             models::Direction::N => fill(canvas, rect(x, y, size, size)),

@@ -4,9 +4,7 @@ pub const COLOR_ROAD: (u8, u8, u8) = (55, 58, 66);
 pub const COLOR_LANE_DIVIDER: (u8, u8, u8) = (200, 200, 160);
 pub const COLOR_STOP_LINE: (u8, u8, u8) = (230, 230, 230);
 
-pub const COLOR_LIGHT_RED: (u8, u8, u8) = (220, 40, 40);
-// pub const COLOR_LIGHT_GREEN: (u8, u8, u8) = (40, 200, 90);
-// pub const COLOR_LIGHT_YELLOW: (u8, u8, u8) = (220, 220, 40);
+pub const COLOR_NOT_WORKING_LIGHT: (u8, u8, u8) = (0, 0, 0);
 
 pub const COLOR_VEHICLE_STRAIGHT: (u8, u8, u8) = (255, 0, 0);
 pub const COLOR_VEHICLE_LEFT: (u8, u8, u8) = (0, 0, 255);
