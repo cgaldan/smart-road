@@ -16,6 +16,8 @@ pub const ROAD_WIDTH: u32 = 300;
 pub const LANE_WIDTH: u32 = ROAD_WIDTH / 2;
 pub const LANE_COUNT: u32 = 6;
 
+pub const VEHICLE_WIDTH: u32 = LANE_WIDTH / LANE_COUNT;
+
 pub const DASH_LENGTH: u32 = 30;
 pub const DASH_WIDTH: u32 = 2;
 pub const DASH_GAP: u32 = 8;
@@ -41,8 +43,10 @@ pub struct Layout {
     pub h: f32,
     pub cx: f32,
     pub cy: f32,
+    pub scale: f32,
     pub road_width: f32,
     pub lane_width: f32,
+    pub vehicle_width: f32,
     pub dash_length: f32,
     pub dash_width: f32,
     pub dash_gap: f32,
@@ -62,8 +66,10 @@ impl Layout {
             h: hf,
             cx: wf / 2.0,
             cy: hf / 2.0,
+            scale,
             road_width: ROAD_WIDTH as f32 * scale,
             lane_width: LANE_WIDTH as f32 * scale,
+            vehicle_width: VEHICLE_WIDTH as f32 * scale,
             dash_length: DASH_LENGTH as f32 * scale,
             dash_width: px(DASH_WIDTH),
             dash_gap: DASH_GAP as f32 * scale,
@@ -77,4 +83,12 @@ impl Layout {
     pub fn box_y_bottom(&self) -> f32 { self.cy + self.road_width / 2.0 }
     pub fn box_x_left(&self) -> f32 { self.cx - self.road_width / 2.0 }
     pub fn box_y_top(&self) -> f32 { self.cy - self.road_width / 2.0 }
+
+    pub fn remap(&self, next: &Layout, x: f32, y: f32) -> (f32, f32) {
+        let ratio = next.scale / self.scale;
+        (
+            next.cx + (x - self.cx) * ratio,
+            next.cy + (y - self.cy) * ratio
+        )
+    }
 }

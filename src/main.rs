@@ -1,15 +1,17 @@
 pub mod renderer;
 pub mod models;
 pub mod vehicle;
+pub mod simulation;
+pub mod helpers;
 
 use std::thread::sleep;
 use std::time::Duration;
 
-use sdl2::event::Event;
+use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::video::FullscreenType;
-use models::{Layout, Direction, Route};
-use vehicle::Vehicle;
+use models::{Layout, Direction};
+use helpers::random_route;
 
 pub const WINDOW_W: u32 = 800;
 pub const WINDOW_H: u32 = 800;
@@ -28,8 +30,12 @@ fn main() {
 
     let mut canvas = window.into_canvas().build().unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
-
+    
     let mut fullscreen = true;
+    
+    let mut sim = simulation::Simulation::new();
+    let (w, h) = canvas.window().size();
+    let mut layout = Layout::new(w, h);
 
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -53,28 +59,31 @@ fn main() {
                         fullscreen = !fullscreen;
                     }
                 }
+                Event::Window {
+                    win_event: WindowEvent::SizeChanged(w, h),
+                    ..
+                } => {
+                    let new_layout = Layout::new(w.max(1) as u32, h.max(1) as u32);
+                    sim.resize(&layout, &new_layout);
+                    layout = new_layout;   
+                }
+                Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
+                    sim.spawn(Direction::N, random_route(), &layout);
+                }
+                Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
+                    sim.spawn(Direction::S, random_route(), &layout);
+                }
+                Event::KeyDown { keycode: Some(Keycode::Left), .. } => {
+                    sim.spawn(Direction::W, random_route(), &layout);
+                }
+                Event::KeyDown { keycode: Some(Keycode::Right), .. } => {
+                    sim.spawn(Direction::E, random_route(), &layout);
+                }
                 _ => {}
             }
         }
 
-        let (w, h) = canvas.window().size();
-        let layout = Layout::new(w, h);
-        let vehicles = vec![
-            Vehicle::new(Direction::N, Route::Straight, &layout),
-            Vehicle::new(Direction::N, Route::Left, &layout),
-            Vehicle::new(Direction::N, Route::Right, &layout),
-            Vehicle::new(Direction::S, Route::Straight, &layout),
-            Vehicle::new(Direction::S, Route::Left, &layout),
-            Vehicle::new(Direction::S, Route::Right, &layout),
-            Vehicle::new(Direction::W, Route::Straight, &layout),
-            Vehicle::new(Direction::W, Route::Left, &layout),
-            Vehicle::new(Direction::W, Route::Right, &layout),
-            Vehicle::new(Direction::E, Route::Straight, &layout),
-            Vehicle::new(Direction::E, Route::Left, &layout),
-            Vehicle::new(Direction::E, Route::Right, &layout),
-        ];
-
-        renderer::draw(&mut canvas, &layout, &vehicles);
+        renderer::draw(&mut canvas, &layout, &sim.vehicles);
         sleep(Duration::from_millis(16));
     }
 
