@@ -1,5 +1,6 @@
-mod renderer;
-mod models;
+pub mod renderer;
+pub mod models;
+pub mod vehicle;
 
 use std::thread::sleep;
 use std::time::Duration;
@@ -7,7 +8,8 @@ use std::time::Duration;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::video::FullscreenType;
-use models::Layout;
+use models::{Layout, Direction, Route};
+use vehicle::Vehicle;
 
 pub const WINDOW_W: u32 = 800;
 pub const WINDOW_H: u32 = 800;
@@ -57,7 +59,22 @@ fn main() {
 
         let (w, h) = canvas.window().size();
         let layout = Layout::new(w, h);
-        renderer::draw(&mut canvas, &layout);
+        let vehicles = vec![
+            Vehicle::new(Direction::N, Route::Straight, &layout),
+            Vehicle::new(Direction::N, Route::Left, &layout),
+            Vehicle::new(Direction::N, Route::Right, &layout),
+            Vehicle::new(Direction::S, Route::Straight, &layout),
+            Vehicle::new(Direction::S, Route::Left, &layout),
+            Vehicle::new(Direction::S, Route::Right, &layout),
+            Vehicle::new(Direction::W, Route::Straight, &layout),
+            Vehicle::new(Direction::W, Route::Left, &layout),
+            Vehicle::new(Direction::W, Route::Right, &layout),
+            Vehicle::new(Direction::E, Route::Straight, &layout),
+            Vehicle::new(Direction::E, Route::Left, &layout),
+            Vehicle::new(Direction::E, Route::Right, &layout),
+        ];
+
+        renderer::draw(&mut canvas, &layout, &vehicles);
         sleep(Duration::from_millis(16));
     }
 

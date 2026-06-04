@@ -8,6 +8,10 @@ pub const COLOR_LIGHT_RED: (u8, u8, u8) = (220, 40, 40);
 // pub const COLOR_LIGHT_GREEN: (u8, u8, u8) = (40, 200, 90);
 // pub const COLOR_LIGHT_YELLOW: (u8, u8, u8) = (220, 220, 40);
 
+pub const COLOR_VEHICLE_STRAIGHT: (u8, u8, u8) = (255, 0, 0);
+pub const COLOR_VEHICLE_LEFT: (u8, u8, u8) = (0, 0, 255);
+pub const COLOR_VEHICLE_RIGHT: (u8, u8, u8) = (0, 255, 0);
+
 pub const BASE_DIM: u32 = 800;
 
 pub const ROAD_WIDTH: u32 = 300;
@@ -25,6 +29,12 @@ pub const LIGHT_GAP: u32 = 4;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
     N, S, W, E
+}
+
+pub enum Route {
+    Straight,
+    Left,
+    Right,
 }
 
 #[derive(Debug, Clone, Copy)]

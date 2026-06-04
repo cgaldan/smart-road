@@ -5,8 +5,9 @@ use sdl2::video::Window;
 use helpers::{set_color, fill, rect};
 
 use crate::models;
+use crate::vehicle;
 
-pub fn draw( canvas: &mut Canvas<Window>, layout: &models::Layout) {
+pub fn draw( canvas: &mut Canvas<Window>, layout: &models::Layout, vehicles: &Vec<vehicle::Vehicle>) {
     draw_background(canvas);
     draw_roads(canvas, layout);
     canvas.set_blend_mode(BlendMode::Blend);
@@ -14,6 +15,7 @@ pub fn draw( canvas: &mut Canvas<Window>, layout: &models::Layout) {
     draw_lane_dividers(canvas, layout);
     draw_stop_lines(canvas, layout);
     draw_traffic_lights(canvas, layout);
+    draw_vehicles(canvas, vehicles);
     canvas.present();
 }
 
@@ -118,5 +120,12 @@ fn draw_traffic_lights(canvas: &mut Canvas<Window>, layout: &models::Layout) {
             models::Direction::W => fill(canvas, rect(x, y, size, size)),
             models::Direction::E => fill(canvas, rect(x, y, size, size)),
         }
+    }
+}
+
+fn draw_vehicles(canvas: &mut Canvas<Window>, vehicles: &Vec<vehicle::Vehicle>) {
+    for vehicle in vehicles {
+        set_color(canvas, vehicle.color);
+        fill(canvas, rect(vehicle.x - vehicle.size / 2.0, vehicle.y - vehicle.size / 2.0, vehicle.size, vehicle.size));
     }
 }
