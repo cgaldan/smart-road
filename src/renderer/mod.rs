@@ -1,21 +1,89 @@
-mod helpers;
+pub mod helpers;
 
-use sdl2::render::{BlendMode, Canvas};
-use sdl2::video::Window;
-use helpers::{set_color, fill, rect};
+use sdl2::pixels::{Color, PixelFormatEnum};
+use sdl2::rect::Rect;
+use sdl2::render::{BlendMode, Canvas, Texture, TextureCreator};
+use sdl2::video::{Window, WindowContext};
 
+use helpers::{fill, rect, set_color};
+
+use crate::font;
 use crate::models;
+use crate::simulation::Stats;
 use crate::vehicle;
 
-pub fn draw( canvas: &mut Canvas<Window>, layout: &models::Layout, vehicles: &Vec<vehicle::Vehicle>) {
+const TEX_W: u32 = 34;
+const TEX_H: u32 = 58;
+
+pub struct VehicleTextures<'a> {
+    straight: Texture<'a>,
+    left: Texture<'a>,
+    right: Texture<'a>,
+}
+
+pub fn build_vehicle_textures<'a>(
+    canvas: &mut Canvas<Window>,
+    creator: &'a TextureCreator<WindowContext>,
+) -> VehicleTextures<'a> {
+    VehicleTextures {
+        straight: build_vehicle_texture(canvas, creator, models::COLOR_VEHICLE_STRAIGHT),
+        left: build_vehicle_texture(canvas, creator, models::COLOR_VEHICLE_LEFT),
+        right: build_vehicle_texture(canvas, creator, models::COLOR_VEHICLE_RIGHT),
+    }
+}
+
+fn build_vehicle_texture<'a>(
+    canvas: &mut Canvas<Window>,
+    creator: &'a TextureCreator<WindowContext>,
+    color: (u8, u8, u8),
+) -> Texture<'a> {
+    let mut texture = creator
+        .create_texture_target(PixelFormatEnum::RGBA8888, TEX_W, TEX_H)
+        .expect("create_texture_target");
+    texture.set_blend_mode(BlendMode::Blend);
+
+    let (r, g, b) = color;
+    canvas
+        .with_texture_canvas(&mut texture, |tc| {
+            tc.set_draw_color(Color::RGBA(0, 0, 0, 0));
+            tc.clear();
+
+            // Body.
+            tc.set_draw_color(Color::RGB(r, g, b));
+            let _ = tc.fill_rect(Rect::new(2, 3, TEX_W - 4, TEX_H - 6));
+
+            // Windshield near the front (top = facing "up", angle 0).
+            let light = (
+                r.saturating_add(50),
+                g.saturating_add(50),
+                b.saturating_add(50),
+            );
+            tc.set_draw_color(Color::RGB(light.0, light.1, light.2));
+            let _ = tc.fill_rect(Rect::new(5, 7, TEX_W - 10, 12));
+
+            // Rear bumper, darker.
+            let dark = ((r as u32 * 2 / 3) as u8, (g as u32 * 2 / 3) as u8, (b as u32 * 2 / 3) as u8);
+            tc.set_draw_color(Color::RGB(dark.0, dark.1, dark.2));
+            let _ = tc.fill_rect(Rect::new(5, TEX_H as i32 - 12, TEX_W - 10, 6));
+        })
+        .expect("with_texture_canvas");
+
+    texture
+}
+
+pub fn draw(
+    canvas: &mut Canvas<Window>,
+    layout: &models::Layout,
+    vehicles: &[vehicle::Vehicle],
+    textures: &VehicleTextures,
+) {
     draw_background(canvas);
     draw_roads(canvas, layout);
     canvas.set_blend_mode(BlendMode::Blend);
 
     draw_lane_dividers(canvas, layout);
     draw_stop_lines(canvas, layout);
-    draw_traffic_lights(canvas, layout);
-    draw_vehicles(canvas, layout, vehicles);
+    draw_vehicles(canvas, layout, vehicles, textures);
     canvas.present();
 }
 
@@ -97,36 +165,78 @@ fn draw_stop_lines(canvas: &mut Canvas<Window>, layout: &models::Layout) {
     fill(canvas, rect(wroad - w, layout.cy, w, lw));
 }
 
-fn draw_traffic_lights(canvas: &mut Canvas<Window>, layout: &models::Layout) {
-    let nroad = layout.box_y_top();
-    let sroad = layout.box_y_bottom();
-    let wroad = layout.box_x_left();
-    let eroad = layout.box_x_right();
-    let size = layout.light_size;
-    let gap = layout.light_gap;
-
-    let lights = [
-        (models::Direction::N, eroad + gap, sroad + gap),
-        (models::Direction::S, wroad - gap - size, nroad - gap - size),
-        (models::Direction::W, eroad + gap, nroad - gap - size),
-        (models::Direction::E, wroad - gap - size, sroad + gap),
-    ];
-
-    set_color(canvas, models::COLOR_NOT_WORKING_LIGHT);
-    for (dir, x, y) in lights {
-        match dir {
-            models::Direction::N => fill(canvas, rect(x, y, size, size)),
-            models::Direction::S => fill(canvas, rect(x, y, size, size)),
-            models::Direction::W => fill(canvas, rect(x, y, size, size)),
-            models::Direction::E => fill(canvas, rect(x, y, size, size)),
-        }
+fn draw_vehicles(
+    canvas: &mut Canvas<Window>,
+    layout: &models::Layout,
+    vehicles: &[vehicle::Vehicle],
+    textures: &VehicleTextures,
+) {
+    let w = layout.vehicle_width * 1.3;
+    let h = layout.vehicle_length;
+    for v in vehicles {
+        let tex = match v.route {
+            models::Route::Straight => &textures.straight,
+            models::Route::Left => &textures.left,
+            models::Route::Right => &textures.right,
+        };
+        let dest = rect(v.x - w / 2.0, v.y - h / 2.0, w, h);
+        let _ = canvas.copy_ex(tex, None, Some(dest), v.angle as f64, None, false, false);
     }
 }
 
-fn draw_vehicles(canvas: &mut Canvas<Window>, layout: &models::Layout, vehicles: &Vec<vehicle::Vehicle>) {
-    let size = layout.vehicle_width;
-    for vehicle in vehicles {
-        set_color(canvas, vehicle.color);
-        fill(canvas, rect(vehicle.x - size / 2.0, vehicle.y - size / 2.0, size, size));
+/// Renders the end-of-simulation statistics screen.
+pub fn draw_stats(canvas: &mut Canvas<Window>, w: u32, h: u32, stats: &Stats) {
+    set_color(canvas, models::COLOR_GROUND);
+    canvas.clear();
+
+    let px = (w.min(h) as f32 / 800.0 * 3.0).max(2.0);
+    let line_gap = font::text_height(px) + px * 3.0;
+    let mut y = h as f32 * 0.14;
+    let x = w as f32 * 0.12;
+    let label_color = (235, 235, 235);
+    let value_color = (120, 200, 255);
+
+    let title = "SIMULATION STATISTICS";
+    let title_px = px * 1.4;
+    font::draw_text(
+        canvas,
+        (w as f32 - font::text_width(title, title_px)) / 2.0,
+        y,
+        title,
+        (255, 210, 90),
+        title_px,
+    );
+    y += font::text_height(title_px) + px * 6.0;
+
+    let min_v = if stats.has_data() { stats.min_velocity } else { 0.0 };
+    let min_t = if stats.has_data() { stats.min_time } else { 0.0 };
+
+    let rows = [
+        ("VEHICLES PASSED".to_string(), format!("{}", stats.vehicles_passed)),
+        ("VEHICLES CREATED".to_string(), format!("{}", stats.vehicles_created)),
+        ("MAX VELOCITY".to_string(), format!("{:.1}", stats.max_velocity)),
+        ("MIN VELOCITY".to_string(), format!("{:.1}", min_v)),
+        ("MAX TIME".to_string(), format!("{:.2}", stats.max_time)),
+        ("MIN TIME".to_string(), format!("{:.2}", min_t)),
+        ("CLOSE CALLS".to_string(), format!("{}", stats.close_calls)),
+    ];
+
+    for (label, value) in rows.iter() {
+        font::draw_text(canvas, x, y, label, label_color, px);
+        font::draw_text(canvas, x + w as f32 * 0.42, y, value, value_color, px);
+        y += line_gap;
     }
+
+    y += px * 6.0;
+    let hint = "PRESS ESC OR ENTER TO EXIT";
+    font::draw_text(
+        canvas,
+        (w as f32 - font::text_width(hint, px)) / 2.0,
+        y,
+        hint,
+        (180, 180, 180),
+        px,
+    );
+
+    canvas.present();
 }
