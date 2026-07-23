@@ -28,6 +28,14 @@ fn main() {
     let sdl_context = sdl2::init().unwrap();
 
     let video_subsystem = sdl_context.video().unwrap();
+    let _audio = sdl_context.audio().unwrap();
+    sdl2::mixer::open_audio(96_100, sdl2::mixer::AUDIO_S16LSB, 2, 2_048).unwrap();
+    let _mixer = sdl2::mixer::init(sdl2::mixer::InitFlag::MP3).unwrap();
+    sdl2::mixer::allocate_channels(4);
+    sdl2::mixer::Music::set_volume(48);
+    let music = sdl2::mixer::Music::from_static_bytes(include_bytes!("../assets/track3.mp3"))
+        .expect("load background music");
+    music.play(-1).expect("play background music");
 
     let window = video_subsystem
         .window(WINDOW_TITLE, WINDOW_W, WINDOW_H)
@@ -39,9 +47,11 @@ fn main() {
     let texture_creator = canvas.texture_creator();
     let vehicle_textures = renderer::build_vehicle_textures(&texture_creator);
     let background_textures = renderer::build_background_textures(&texture_creator);
+    let music_control_textures = renderer::build_music_control_textures(&texture_creator);
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     let mut fullscreen = true;
+    let mut muted = false;
     let mut state = AppState::Running;
 
     let mut sim = simulation::Simulation::new();
@@ -111,6 +121,21 @@ fn main() {
                 {
                     sim.toggle_random();
                 }
+                Event::MouseButtonDown { x, y, .. } if state == AppState::Running => {
+                    let (width, _) = canvas.output_size().unwrap_or((WINDOW_W, WINDOW_H));
+                    if renderer::mute_button_rect(width).contains_point((x, y)) {
+                        muted = !muted;
+                        helpers::toggle_music(muted);
+                    }
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::M),
+                    repeat: false,
+                    ..
+                } => {
+                    muted = !muted;
+                    helpers::toggle_music(muted);
+                }
                 _ => {}
             }
         }
@@ -128,6 +153,8 @@ fn main() {
                     &sim.vehicles,
                     &vehicle_textures,
                     &background_textures,
+                    &music_control_textures,
+                    muted,
                     (now - animation_start).as_secs_f32(),
                 );
             }

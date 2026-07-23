@@ -43,6 +43,23 @@ pub struct BackgroundTextures<'a> {
     stars: Texture<'a>,
 }
 
+pub struct MusicControlTextures<'a> {
+    sound_on: Texture<'a>,
+    muted: Texture<'a>,
+}
+
+pub const MUTE_BUTTON_SIZE: u32 = 44;
+const MUTE_BUTTON_MARGIN: i32 = 12;
+
+pub fn mute_button_rect(canvas_width: u32) -> Rect {
+    Rect::new(
+        canvas_width as i32 - MUTE_BUTTON_SIZE as i32 - MUTE_BUTTON_MARGIN,
+        MUTE_BUTTON_MARGIN,
+        MUTE_BUTTON_SIZE,
+        MUTE_BUTTON_SIZE,
+    )
+}
+
 pub fn build_vehicle_textures<'a>(
     creator: &'a TextureCreator<WindowContext>,
 ) -> VehicleTextures<'a> {
@@ -105,6 +122,23 @@ pub fn build_background_textures<'a>(
     BackgroundTextures { nebula, stars }
 }
 
+pub fn build_music_control_textures<'a>(
+    creator: &'a TextureCreator<WindowContext>,
+) -> MusicControlTextures<'a> {
+    MusicControlTextures {
+        sound_on: load_texture(
+            creator,
+            "sound on icon",
+            include_bytes!("../../assets/volume.png"),
+        ),
+        muted: load_texture(
+            creator,
+            "muted icon",
+            include_bytes!("../../assets/volume-mute.png"),
+        ),
+    }
+}
+
 fn load_ship<'a>(
     creator: &'a TextureCreator<WindowContext>,
     name: &str,
@@ -159,6 +193,8 @@ pub fn draw(
     vehicles: &[vehicle::Vehicle],
     textures: &VehicleTextures,
     background: &BackgroundTextures,
+    music_controls: &MusicControlTextures,
+    muted: bool,
     animation_time: f32,
 ) {
     draw_background(canvas, background, animation_time);
@@ -168,6 +204,7 @@ pub fn draw(
     draw_lane_dividers(canvas, layout);
     draw_stop_lines(canvas, layout);
     draw_vehicles(canvas, layout, vehicles, textures, animation_time);
+    draw_mute_button(canvas, music_controls, muted);
     canvas.present();
 }
 
@@ -229,6 +266,32 @@ fn draw_roads(canvas: &mut Canvas<Window>, layout: &models::Layout) {
     canvas.set_draw_color(Color::RGBA(red, green, blue, models::ROAD_ALPHA));
     fill(canvas, rect(layout.box_x_left(), 0.0, layout.road_width, layout.h));
     fill(canvas, rect(0.0, layout.box_y_top(), layout.w, layout.road_width));
+}
+
+fn draw_mute_button(
+    canvas: &mut Canvas<Window>,
+    controls: &MusicControlTextures,
+    muted: bool,
+) {
+    let (canvas_width, _) = canvas.output_size().unwrap_or((0, 0));
+    let button = mute_button_rect(canvas_width);
+
+    canvas.set_draw_color(Color::RGBA(230, 230, 235, 200));
+    fill(canvas, button);
+
+    let padding = MUTE_BUTTON_SIZE as i32 / 6;
+    let icon = Rect::new(
+        button.x() + padding,
+        button.y() + padding,
+        (MUTE_BUTTON_SIZE as i32 - 2 * padding).max(1) as u32,
+        (MUTE_BUTTON_SIZE as i32 - 2 * padding).max(1) as u32,
+    );
+    let texture = if muted {
+        &controls.muted
+    } else {
+        &controls.sound_on
+    };
+    let _ = canvas.copy(texture, None, Some(icon));
 }
 
 fn draw_lane_dividers(canvas: &mut Canvas<Window>, layout: &models::Layout) {
