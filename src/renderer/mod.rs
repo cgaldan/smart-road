@@ -12,62 +12,144 @@ use crate::models;
 use crate::simulation::Stats;
 use crate::vehicle;
 
-const TEX_W: u32 = 34;
-const TEX_H: u32 = 58;
-
-pub struct VehicleTextures<'a> {
-    straight: Texture<'a>,
-    left: Texture<'a>,
-    right: Texture<'a>,
+struct Sprite<'a> {
+    texture: Texture<'a>,
+    frames: u32,
 }
 
-pub fn build_vehicle_textures<'a>(
-    canvas: &mut Canvas<Window>,
-    creator: &'a TextureCreator<WindowContext>,
-) -> VehicleTextures<'a> {
-    VehicleTextures {
-        straight: build_vehicle_texture(canvas, creator, models::COLOR_VEHICLE_STRAIGHT),
-        left: build_vehicle_texture(canvas, creator, models::COLOR_VEHICLE_LEFT),
-        right: build_vehicle_texture(canvas, creator, models::COLOR_VEHICLE_RIGHT),
+impl Sprite<'_> {
+    fn frame_source(&self, clock: f32) -> Rect {
+        let side = self.texture.query().height;
+        let frame = if self.frames <= 1 {
+            0
+        } else {
+            (clock * models::ENGINE_ANIMATION_FPS) as u32 % self.frames
+        };
+        Rect::new((frame * side) as i32, 0, side, side)
     }
 }
 
-fn build_vehicle_texture<'a>(
-    canvas: &mut Canvas<Window>,
+struct ShipSprite<'a> {
+    engine: Sprite<'a>,
+    hull: Sprite<'a>,
+}
+
+pub struct VehicleTextures<'a> {
+    ships: [ShipSprite<'a>; 6],
+}
+
+pub struct BackgroundTextures<'a> {
+    nebula: Texture<'a>,
+    stars: Texture<'a>,
+}
+
+pub fn build_vehicle_textures<'a>(
     creator: &'a TextureCreator<WindowContext>,
-    color: (u8, u8, u8),
+) -> VehicleTextures<'a> {
+    VehicleTextures {
+        ships: [
+            load_ship(
+                creator,
+                "frigate",
+                include_bytes!("../../assets/frigate_engine.png"),
+                include_bytes!("../../assets/frigate.png"),
+            ),
+            load_ship(
+                creator,
+                "battlecruiser",
+                include_bytes!("../../assets/battlecruiser_engine.png"),
+                include_bytes!("../../assets/battlecruiser.png"),
+            ),
+            load_ship(
+                creator,
+                "scout",
+                include_bytes!("../../assets/scout_engine.png"),
+                include_bytes!("../../assets/scout.png"),
+            ),
+            load_ship(
+                creator,
+                "torpedo ship",
+                include_bytes!("../../assets/torpedoShip_engine.png"),
+                include_bytes!("../../assets/torpedoShip.png"),
+            ),
+            load_ship(
+                creator,
+                "dreadnought",
+                include_bytes!("../../assets/dreadnought_engine.png"),
+                include_bytes!("../../assets/dreadnought.png"),
+            ),
+            load_ship(
+                creator,
+                "battlecruiser 2",
+                include_bytes!("../../assets/battlecruiser2_engine.png"),
+                include_bytes!("../../assets/battlecruiser2.png"),
+            ),
+        ],
+    }
+}
+
+pub fn build_background_textures<'a>(
+    creator: &'a TextureCreator<WindowContext>,
+) -> BackgroundTextures<'a> {
+    let nebula = load_texture(
+        creator,
+        "nebula background",
+        include_bytes!("../../assets/bg_nebula.png"),
+    );
+    let mut stars = load_texture(
+        creator,
+        "starfield background",
+        include_bytes!("../../assets/bg_stars.png"),
+    );
+    stars.set_blend_mode(BlendMode::Add);
+    BackgroundTextures { nebula, stars }
+}
+
+fn load_ship<'a>(
+    creator: &'a TextureCreator<WindowContext>,
+    name: &str,
+    engine_png: &[u8],
+    hull_png: &[u8],
+) -> ShipSprite<'a> {
+    ShipSprite {
+        engine: load_sprite(creator, &format!("{name} engine"), engine_png),
+        hull: load_sprite(creator, name, hull_png),
+    }
+}
+
+fn load_sprite<'a>(
+    creator: &'a TextureCreator<WindowContext>,
+    name: &str,
+    png: &[u8],
+) -> Sprite<'a> {
+    let texture = load_texture(creator, name, png);
+    let query = texture.query();
+    assert!(
+        query.height > 0 && query.width % query.height == 0,
+        "{name} sprite must be a horizontal strip of square frames"
+    );
+    Sprite {
+        texture,
+        frames: query.width / query.height,
+    }
+}
+
+fn load_texture<'a>(
+    creator: &'a TextureCreator<WindowContext>,
+    name: &str,
+    png: &[u8],
 ) -> Texture<'a> {
+    let image = image::load_from_memory_with_format(png, image::ImageFormat::Png)
+        .unwrap_or_else(|error| panic!("decode {name} sprite: {error}"))
+        .to_rgba8();
+    let (width, height) = image.dimensions();
     let mut texture = creator
-        .create_texture_target(PixelFormatEnum::RGBA8888, TEX_W, TEX_H)
-        .expect("create_texture_target");
+        .create_texture_static(PixelFormatEnum::ABGR8888, width, height)
+        .unwrap_or_else(|error| panic!("create {name} texture: {error}"));
+    texture
+        .update(None, image.as_raw(), width as usize * 4)
+        .unwrap_or_else(|error| panic!("upload {name} texture: {error}"));
     texture.set_blend_mode(BlendMode::Blend);
-
-    let (r, g, b) = color;
-    canvas
-        .with_texture_canvas(&mut texture, |tc| {
-            tc.set_draw_color(Color::RGBA(0, 0, 0, 0));
-            tc.clear();
-
-            // Body.
-            tc.set_draw_color(Color::RGB(r, g, b));
-            let _ = tc.fill_rect(Rect::new(2, 3, TEX_W - 4, TEX_H - 6));
-
-            // Windshield near the front (top = facing "up", angle 0).
-            let light = (
-                r.saturating_add(50),
-                g.saturating_add(50),
-                b.saturating_add(50),
-            );
-            tc.set_draw_color(Color::RGB(light.0, light.1, light.2));
-            let _ = tc.fill_rect(Rect::new(5, 7, TEX_W - 10, 12));
-
-            // Rear bumper, darker.
-            let dark = ((r as u32 * 2 / 3) as u8, (g as u32 * 2 / 3) as u8, (b as u32 * 2 / 3) as u8);
-            tc.set_draw_color(Color::RGB(dark.0, dark.1, dark.2));
-            let _ = tc.fill_rect(Rect::new(5, TEX_H as i32 - 12, TEX_W - 10, 6));
-        })
-        .expect("with_texture_canvas");
-
     texture
 }
 
@@ -76,24 +158,75 @@ pub fn draw(
     layout: &models::Layout,
     vehicles: &[vehicle::Vehicle],
     textures: &VehicleTextures,
+    background: &BackgroundTextures,
+    animation_time: f32,
 ) {
-    draw_background(canvas);
+    draw_background(canvas, background, animation_time);
     draw_roads(canvas, layout);
     canvas.set_blend_mode(BlendMode::Blend);
 
     draw_lane_dividers(canvas, layout);
     draw_stop_lines(canvas, layout);
-    draw_vehicles(canvas, layout, vehicles, textures);
+    draw_vehicles(canvas, layout, vehicles, textures, animation_time);
     canvas.present();
 }
 
-fn draw_background(canvas: &mut Canvas<Window>) {
+fn draw_background(
+    canvas: &mut Canvas<Window>,
+    background: &BackgroundTextures,
+    animation_time: f32,
+) {
     set_color(canvas, models::COLOR_GROUND);
     canvas.clear();
+    scroll_background_layer(
+        canvas,
+        &background.nebula,
+        models::BACKGROUND_NEBULA_TILE,
+        models::BACKGROUND_SCROLL_X,
+        models::BACKGROUND_SCROLL_Y,
+        animation_time,
+    );
+    scroll_background_layer(
+        canvas,
+        &background.stars,
+        models::BACKGROUND_STARS_TILE,
+        models::BACKGROUND_SCROLL_X * models::BACKGROUND_STARS_PARALLAX,
+        models::BACKGROUND_SCROLL_Y * models::BACKGROUND_STARS_PARALLAX,
+        animation_time,
+    );
+}
+
+fn scroll_background_layer(
+    canvas: &mut Canvas<Window>,
+    texture: &Texture,
+    tile_size: u32,
+    velocity_x: f32,
+    velocity_y: f32,
+    animation_time: f32,
+) {
+    let (canvas_width, canvas_height) = canvas.output_size().unwrap_or((0, 0));
+    let tile = tile_size as i32;
+    let offset_x = (animation_time * velocity_x).rem_euclid(tile_size as f32) as i32;
+    let offset_y = (animation_time * velocity_y).rem_euclid(tile_size as f32) as i32;
+    let columns = canvas_width as i32 / tile + 2;
+    let rows = canvas_height as i32 / tile + 2;
+
+    for row in 0..rows {
+        for column in 0..columns {
+            let destination = Rect::new(
+                column * tile - offset_x,
+                row * tile - offset_y,
+                tile_size,
+                tile_size,
+            );
+            let _ = canvas.copy(texture, None, Some(destination));
+        }
+    }
 }
 
 fn draw_roads(canvas: &mut Canvas<Window>, layout: &models::Layout) {
-    set_color(canvas, models::COLOR_ROAD);
+    let (red, green, blue) = models::COLOR_ROAD;
+    canvas.set_draw_color(Color::RGBA(red, green, blue, models::ROAD_ALPHA));
     fill(canvas, rect(layout.box_x_left(), 0.0, layout.road_width, layout.h));
     fill(canvas, rect(0.0, layout.box_y_top(), layout.w, layout.road_width));
 }
@@ -170,17 +303,38 @@ fn draw_vehicles(
     layout: &models::Layout,
     vehicles: &[vehicle::Vehicle],
     textures: &VehicleTextures,
+    animation_time: f32,
 ) {
-    let w = layout.vehicle_width * 1.3;
-    let h = layout.vehicle_length;
+    let size = layout.vehicle_length * models::VEHICLE_SPRITE_SCALE;
     for v in vehicles {
-        let tex = match v.route {
-            models::Route::Straight => &textures.straight,
-            models::Route::Left => &textures.left,
-            models::Route::Right => &textures.right,
+        let route_ship = match v.route {
+            models::Route::Left => 0,
+            models::Route::Straight => 1,
+            models::Route::Right => 2,
         };
-        let dest = rect(v.x - w / 2.0, v.y - h / 2.0, w, h);
-        let _ = canvas.copy_ex(tex, None, Some(dest), v.angle as f64, None, false, false);
+        let variant = (v.id as usize) % 2;
+        let ship = &textures.ships[route_ship + variant * 3];
+        let dest = rect(v.x - size / 2.0, v.y - size / 2.0, size, size);
+        let engine_source = ship.engine.frame_source(animation_time);
+        let hull_source = ship.hull.frame_source(animation_time);
+        let _ = canvas.copy_ex(
+            &ship.engine.texture,
+            Some(engine_source),
+            Some(dest),
+            v.angle as f64,
+            None,
+            false,
+            false,
+        );
+        let _ = canvas.copy_ex(
+            &ship.hull.texture,
+            Some(hull_source),
+            Some(dest),
+            v.angle as f64,
+            None,
+            false,
+            false,
+        );
     }
 }
 

@@ -37,7 +37,8 @@ fn main() {
 
     let mut canvas = window.into_canvas().build().unwrap();
     let texture_creator = canvas.texture_creator();
-    let vehicle_textures = renderer::build_vehicle_textures(&mut canvas, &texture_creator);
+    let vehicle_textures = renderer::build_vehicle_textures(&texture_creator);
+    let background_textures = renderer::build_background_textures(&texture_creator);
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     let mut fullscreen = true;
@@ -47,7 +48,8 @@ fn main() {
     let (w, h) = canvas.window().size();
     let mut layout = Layout::new(w, h);
 
-    let mut last_frame = Instant::now();
+    let animation_start = Instant::now();
+    let mut last_frame = animation_start;
 
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -120,7 +122,14 @@ fn main() {
         match state {
             AppState::Running => {
                 sim.update(dt, &layout);
-                renderer::draw(&mut canvas, &layout, &sim.vehicles, &vehicle_textures);
+                renderer::draw(
+                    &mut canvas,
+                    &layout,
+                    &sim.vehicles,
+                    &vehicle_textures,
+                    &background_textures,
+                    (now - animation_start).as_secs_f32(),
+                );
             }
             AppState::Stats => {
                 let (w, h) = canvas.window().size();

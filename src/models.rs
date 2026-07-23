@@ -1,8 +1,9 @@
-pub const COLOR_GROUND: (u8, u8, u8) = (96, 96, 96);
+pub const COLOR_GROUND: (u8, u8, u8) = (32, 32, 40);
 
 pub const COLOR_ROAD: (u8, u8, u8) = (55, 58, 66);
 pub const COLOR_LANE_DIVIDER: (u8, u8, u8) = (200, 200, 160);
 pub const COLOR_STOP_LINE: (u8, u8, u8) = (230, 230, 230);
+pub const ROAD_ALPHA: u8 = 115;
 
 pub const COLOR_VEHICLE_STRAIGHT: (u8, u8, u8) = (235, 64, 52);
 pub const COLOR_VEHICLE_LEFT: (u8, u8, u8) = (52, 120, 235);
@@ -16,6 +17,14 @@ pub const LANE_COUNT: u32 = 6;
 
 pub const VEHICLE_WIDTH: u32 = LANE_WIDTH / LANE_COUNT;
 pub const VEHICLE_LENGTH_RATIO: f32 = 1.7;
+pub const VEHICLE_SPRITE_SCALE: f32 = 1.35;
+pub const ENGINE_ANIMATION_FPS: f32 = 15.0;
+
+pub const BACKGROUND_NEBULA_TILE: u32 = 768;
+pub const BACKGROUND_STARS_TILE: u32 = 512;
+pub const BACKGROUND_SCROLL_X: f32 = -9.0;
+pub const BACKGROUND_SCROLL_Y: f32 = -6.0;
+pub const BACKGROUND_STARS_PARALLAX: f32 = 2.3;
 
 pub const DASH_LENGTH: u32 = 30;
 pub const DASH_WIDTH: u32 = 2;
