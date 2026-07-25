@@ -14,6 +14,7 @@ pub struct Stats {
     pub max_time: f32,
     pub min_time: f32,
     pub close_calls: u32,
+    pub collisions: u32,
 }
 
 impl Stats {
@@ -26,6 +27,7 @@ impl Stats {
             max_time: 0.0,
             min_time: f32::MAX,
             close_calls: 0,
+            collisions: 0,
         }
     }
 
@@ -42,6 +44,7 @@ pub struct Simulation {
     last_random_spawn: Instant,
     conflict_table: Vec<Vec<bool>>,
     violating_pairs: HashSet<(u64, u64)>,
+    colliding_pairs: HashSet<(u64, u64)>,
     pub stats: Stats,
 }
 
@@ -61,6 +64,7 @@ impl Simulation {
             last_random_spawn: Instant::now(),
             conflict_table: build_conflict_table(BASE_SAFETY_DISTANCE),
             violating_pairs: HashSet::new(),
+            colliding_pairs: HashSet::new(),
             stats: Stats::new(),
         }
     }
@@ -135,7 +139,7 @@ impl Simulation {
             v.min_velocity_reached = v.min_velocity_reached.min(v.velocity);
         }
 
-        self.detect_close_calls(layout);
+        self.detect_close_calls_and_collisions(layout);
         self.remove_finished();
     }
 
@@ -211,24 +215,32 @@ impl Simulation {
         }
     }
 
-    /// Tracks vehicle pairs currently violating the safety distance and
-    /// counts a close call each time a pair newly enters violation.
-    fn detect_close_calls(&mut self, layout: &Layout) {
+    /// Tracks vehicle pairs currently violating the safety distance or
+    /// actually overlapping, counting a close call / collision each time a
+    /// pair newly enters that state (so one continuous violation only
+    /// counts once).
+    fn detect_close_calls_and_collisions(&mut self, layout: &Layout) {
         let n = self.vehicles.len();
-        let mut current: HashSet<(u64, u64)> = HashSet::new();
+        let mut current_violations: HashSet<(u64, u64)> = HashSet::new();
+        let mut current_collisions: HashSet<(u64, u64)> = HashSet::new();
         for i in 0..n {
             for j in (i + 1)..n {
                 let a = &self.vehicles[i];
                 let b = &self.vehicles[j];
                 let d = ((a.x - b.x).powi(2) + (a.y - b.y).powi(2)).sqrt();
+                let key = if a.id < b.id { (a.id, b.id) } else { (b.id, a.id) };
                 if d < layout.safety_distance {
-                    let key = if a.id < b.id { (a.id, b.id) } else { (b.id, a.id) };
-                    current.insert(key);
+                    current_violations.insert(key);
+                }
+                if d < layout.collision_distance {
+                    current_collisions.insert(key);
                 }
             }
         }
-        self.stats.close_calls += current.difference(&self.violating_pairs).count() as u32;
-        self.violating_pairs = current;
+        self.stats.close_calls += current_violations.difference(&self.violating_pairs).count() as u32;
+        self.stats.collisions += current_collisions.difference(&self.colliding_pairs).count() as u32;
+        self.violating_pairs = current_violations;
+        self.colliding_pairs = current_collisions;
     }
 
     fn remove_finished(&mut self) {
@@ -243,6 +255,7 @@ impl Simulation {
                 self.stats.max_velocity = self.stats.max_velocity.max(v.max_velocity_reached);
                 self.stats.min_velocity = self.stats.min_velocity.min(v.min_velocity_reached);
                 self.violating_pairs.retain(|&(a, b)| a != v.id && b != v.id);
+                self.colliding_pairs.retain(|&(a, b)| a != v.id && b != v.id);
             } else {
                 i += 1;
             }
@@ -310,10 +323,11 @@ mod tests {
         }
 
         println!(
-            "created={} passed={} close_calls={} max_v={:.1} min_v={:.1} max_t={:.2} min_t={:.2} min_dist_ever={:.2} max_active={}",
+            "created={} passed={} close_calls={} collisions={} max_v={:.1} min_v={:.1} max_t={:.2} min_t={:.2} min_dist_ever={:.2} max_active={}",
             sim.stats.vehicles_created,
             sim.stats.vehicles_passed,
             sim.stats.close_calls,
+            sim.stats.collisions,
             sim.stats.max_velocity,
             sim.stats.min_velocity,
             sim.stats.max_time,

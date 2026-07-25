@@ -30,7 +30,7 @@ Review of the current implementation (`main.rs`, `vehicle`, `simulation`, `model
 
 ## Remaining tasks
 
-- [ ] Add a `collisions` stat (separate from `close_calls`) to `Stats` and display it on the stats screen
+- [x] Add a `collisions` stat (separate from `close_calls`) to `Stats` and display it on the stats screen (implemented: new `BASE_COLLISION_DISTANCE` threshold, tighter than `safety_distance`, tracked the same way as close calls via a second pair-set in `detect_close_calls_and_collisions`; purely a silent counter, shown as "COLLISIONS" on the stats screen, doesn't alter vehicle behavior)
 - [x] Add a real road/intersection image asset and use it in `draw_roads`/`draw_lane_dividers` instead of procedurally filled rectangles (closed by user judgment call — road is a semi-transparent fill over the nebula/star background with procedural dashed lines, not a dedicated road texture; visually legible but a thinner answer to the audit question than a real asset would be)
 - [ ] Add a dedicated unit test for the Physics Engine (`velocity = distance / time`)
 - [ ] Add a dedicated unit test for Safety Distance Detection (close call / stop condition)
