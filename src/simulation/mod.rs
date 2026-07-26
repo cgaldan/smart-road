@@ -343,4 +343,159 @@ mod tests {
             "vehicles overlapped: min_dist_ever={min_dist_ever}"
         );
     }
+
+    /// Safety Distance Detection: a pair closing to within `safety_distance`
+    /// should register exactly one close call (not a collision), and a pair
+    /// closing to within `collision_distance` should additionally register a
+    /// collision.
+    #[test]
+    fn detects_close_call_and_collision_thresholds() {
+        let layout = Layout::new(800, 800);
+        let mut sim = Simulation::new();
+
+        let mut a = Vehicle::new(0, Direction::N, Route::Straight, &layout);
+        let mut b = Vehicle::new(1, Direction::S, Route::Straight, &layout);
+
+        // Start far apart: no violation of any kind.
+        a.x = 0.0;
+        a.y = 0.0;
+        b.x = 1_000.0;
+        b.y = 1_000.0;
+        sim.vehicles.push(a);
+        sim.vehicles.push(b);
+
+        sim.detect_close_calls_and_collisions(&layout);
+        assert_eq!(sim.stats.close_calls, 0);
+        assert_eq!(sim.stats.collisions, 0);
+
+        // Move within the safety distance but outside the (tighter) collision distance.
+        let safe_gap = layout.safety_distance * 0.8;
+        assert!(safe_gap > layout.collision_distance, "test assumes safety_distance > collision_distance");
+        sim.vehicles[1].x = sim.vehicles[0].x + safe_gap;
+        sim.vehicles[1].y = sim.vehicles[0].y;
+        sim.detect_close_calls_and_collisions(&layout);
+        assert_eq!(sim.stats.close_calls, 1, "expected a new close call to be counted");
+        assert_eq!(sim.stats.collisions, 0, "gap is still outside collision distance");
+
+        // Now close all the way to within the collision distance.
+        let collide_gap = layout.collision_distance * 0.5;
+        sim.vehicles[1].x = sim.vehicles[0].x + collide_gap;
+        sim.detect_close_calls_and_collisions(&layout);
+        assert_eq!(sim.stats.collisions, 1, "expected a new collision to be counted");
+        assert_eq!(
+            sim.stats.close_calls, 1,
+            "same continuous violation shouldn't be double-counted as a close call"
+        );
+    }
+
+    /// Safety Distance Detection (stop condition): a vehicle with another
+    /// vehicle directly ahead of it, within the safety distance, must be
+    /// commanded to a full stop (target speed 0).
+    #[test]
+    fn target_speed_is_zero_when_lead_vehicle_within_safety_distance() {
+        let layout = Layout::new(800, 800);
+        let mut sim = Simulation::new();
+
+        let mut follower = Vehicle::new(0, Direction::N, Route::Straight, &layout);
+        let mut leader = Vehicle::new(1, Direction::N, Route::Straight, &layout);
+
+        // Put both well clear of the intersection box and of each other's
+        // conflict logic, only the car-following gap should matter here.
+        follower.progress = 50.0;
+        follower.advance(0.0);
+        leader.progress = 50.0 + layout.safety_distance * 0.5;
+        leader.advance(0.0);
+
+        sim.vehicles.push(follower);
+        sim.vehicles.push(leader);
+
+        let target = sim.target_speed_for(0, &layout);
+        assert_eq!(target, 0.0, "expected a hard stop when gap is within safety distance");
+    }
+
+    /// Smart Intersection Algorithm: when two vehicles are on conflicting
+    /// routes, the one reaching the intersection box first should be let
+    /// through while the other yields (is slowed or stopped).
+    #[test]
+    fn conflicting_routes_cause_the_later_vehicle_to_yield() {
+        let layout = Layout::new(800, 800);
+        let mut sim = Simulation::new();
+
+        let mut first = Vehicle::new(0, Direction::N, Route::Straight, &layout);
+        let mut second = Vehicle::new(1, Direction::E, Route::Straight, &layout);
+
+        let my_combo = combo_index(Direction::N, Route::Straight);
+        let other_combo = combo_index(Direction::E, Route::Straight);
+        assert!(
+            sim.conflict_table[my_combo][other_combo],
+            "test assumes N-straight and E-straight conflict inside the box"
+        );
+
+        // `first` is 2 units from the box entry (about to enter); `second`
+        // is 20 units out, inside the stop margin, so it must yield fully.
+        first.progress = first.entry_arc - 2.0;
+        first.advance(0.0);
+        second.progress = second.entry_arc - 20.0;
+        second.advance(0.0);
+        assert!(second.remaining_to_entry() < layout.stop_margin);
+
+        sim.vehicles.push(first);
+        sim.vehicles.push(second);
+
+        let first_target = sim.target_speed_for(0, &layout);
+        let second_target = sim.target_speed_for(1, &layout);
+
+        assert_eq!(first_target, layout.speed_fast, "closer vehicle should proceed at full speed");
+        assert_eq!(second_target, 0.0, "later vehicle on a conflicting route must yield/stop");
+    }
+
+    /// Statistics Accumulation: finishing vehicles should fold their
+    /// per-vehicle extremes into the running max/min velocity and time
+    /// stats, and bump the passed count — one update per vehicle.
+    #[test]
+    fn remove_finished_updates_min_max_and_count_stats() {
+        let layout = Layout::new(800, 800);
+        let mut sim = Simulation::new();
+
+        let mut fast_and_long = Vehicle::new(0, Direction::N, Route::Straight, &layout);
+        fast_and_long.max_velocity_reached = 200.0;
+        fast_and_long.min_velocity_reached = 50.0;
+        fast_and_long.spawn_time = Instant::now() - Duration::from_secs_f32(5.0);
+        fast_and_long.progress = fast_and_long.total_len;
+
+        let mut slow_and_short = Vehicle::new(1, Direction::S, Route::Straight, &layout);
+        slow_and_short.max_velocity_reached = 80.0;
+        slow_and_short.min_velocity_reached = 10.0;
+        slow_and_short.spawn_time = Instant::now() - Duration::from_secs_f32(1.0);
+        slow_and_short.progress = slow_and_short.total_len;
+
+        sim.vehicles.push(fast_and_long);
+        sim.vehicles.push(slow_and_short);
+
+        sim.remove_finished();
+
+        assert_eq!(sim.stats.vehicles_passed, 2, "both finished vehicles should be counted");
+        assert!(sim.vehicles.is_empty(), "finished vehicles should be removed from the active list");
+        assert!((sim.stats.max_velocity - 200.0).abs() < 0.01, "max_velocity={}", sim.stats.max_velocity);
+        assert!((sim.stats.min_velocity - 10.0).abs() < 0.01, "min_velocity={}", sim.stats.min_velocity);
+        assert!(sim.stats.max_time >= 4.9, "max_time={}", sim.stats.max_time);
+        assert!(sim.stats.min_time <= 1.5, "min_time={}", sim.stats.min_time);
+    }
+
+    /// Statistics Accumulation (count): each successful spawn increments
+    /// `vehicles_created`, independent of the passed/finished count above.
+    #[test]
+    fn try_spawn_increments_vehicles_created_count() {
+        let layout = Layout::new(800, 800);
+        let mut sim = Simulation::new();
+
+        for dir in Direction::ALL {
+            assert!(
+                sim.try_spawn(dir, Route::Straight, &layout),
+                "expected the first spawn per direction to succeed"
+            );
+        }
+
+        assert_eq!(sim.stats.vehicles_created, 4);
+    }
 }
