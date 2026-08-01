@@ -156,3 +156,55 @@ fn nearest_arc(pts: &[(f32, f32)], cum: &[f32], target: (f32, f32)) -> f32 {
     }
     best_arc
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Mirrors what `Simulation::update` does each frame: `distance =
+    /// velocity * dt`. Feeding that distance into `advance` should move the
+    /// vehicle such that recovering `velocity = distance / time` from the
+    /// actual position delta reproduces the original velocity.
+    #[test]
+    fn advance_moves_vehicle_by_velocity_times_time() {
+        let layout = Layout::new(800, 800);
+        let mut v = Vehicle::new(0, Direction::N, Route::Straight, &layout);
+
+        let velocity: f32 = 120.0; // px/s
+        let dt: f32 = 0.2; // s, small enough to stay on the first path segment
+        let distance = velocity * dt;
+
+        let (x0, y0) = (v.x, v.y);
+        let progress0 = v.progress;
+
+        v.velocity = velocity;
+        v.advance(distance);
+
+        // progress (arc length) advanced by exactly the requested distance.
+        let progress_moved = v.progress - progress0;
+        assert!(
+            (progress_moved - distance).abs() < 1e-4,
+            "expected progress to move by {distance}, moved {progress_moved}"
+        );
+
+        // Actual on-screen displacement, divided by elapsed time, recovers
+        // the original velocity: velocity = distance / time.
+        let euclidean_moved = ((v.x - x0).powi(2) + (v.y - y0).powi(2)).sqrt();
+        let recovered_velocity = euclidean_moved / dt;
+        assert!(
+            (recovered_velocity - velocity).abs() < 1.0,
+            "expected recovered velocity ~{velocity}, got {recovered_velocity}"
+        );
+    }
+
+    #[test]
+    fn advance_clamps_progress_to_total_length() {
+        let layout = Layout::new(800, 800);
+        let mut v = Vehicle::new(0, Direction::N, Route::Straight, &layout);
+
+        v.advance(v.total_len + 1_000.0);
+
+        assert_eq!(v.progress, v.total_len);
+        assert!(v.is_finished());
+    }
+}

@@ -38,6 +38,10 @@ pub const BASE_SPEED_MEDIUM: f32 = 140.0;
 pub const BASE_SPEED_FAST: f32 = 230.0;
 
 pub const BASE_SAFETY_DISTANCE: f32 = 46.0;
+/// Center-to-center distance below which vehicles are considered to have
+/// actually collided (physical overlap), as opposed to merely violating the
+/// safety distance (a close call).
+pub const BASE_COLLISION_DISTANCE: f32 = VEHICLE_WIDTH as f32 * 0.6;
 pub const BASE_LANE_TOLERANCE: f32 = 30.0;
 pub const BASE_LOOKAHEAD_DISTANCE: f32 = 320.0;
 pub const BASE_STOP_MARGIN: f32 = 24.0;
@@ -150,6 +154,7 @@ pub struct Layout {
     pub speed_medium: f32,
     pub speed_fast: f32,
     pub safety_distance: f32,
+    pub collision_distance: f32,
     pub lane_tolerance: f32,
     pub lookahead_distance: f32,
     pub stop_margin: f32,
@@ -182,6 +187,7 @@ impl Layout {
             speed_medium: BASE_SPEED_MEDIUM * scale,
             speed_fast: BASE_SPEED_FAST * scale,
             safety_distance: BASE_SAFETY_DISTANCE * scale,
+            collision_distance: BASE_COLLISION_DISTANCE * scale,
             lane_tolerance: BASE_LANE_TOLERANCE * scale,
             lookahead_distance: BASE_LOOKAHEAD_DISTANCE * scale,
             stop_margin: BASE_STOP_MARGIN * scale,

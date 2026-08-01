@@ -436,6 +436,7 @@ pub fn draw_stats(canvas: &mut Canvas<Window>, w: u32, h: u32, stats: &Stats) {
         ("MAX TIME".to_string(), format!("{:.2}", stats.max_time)),
         ("MIN TIME".to_string(), format!("{:.2}", min_t)),
         ("CLOSE CALLS".to_string(), format!("{}", stats.close_calls)),
+        ("COLLISIONS".to_string(), format!("{}", stats.collisions)),
     ];
 
     for (label, value) in rows.iter() {
