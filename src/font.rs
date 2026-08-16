@@ -6,7 +6,6 @@ use crate::renderer::helpers::{fill, rect, set_color};
 pub const GLYPH_W: usize = 5;
 pub const GLYPH_H: usize = 7;
 
-/// Tiny 5x7 bitmap font covering the characters used on the statistics screen.
 fn glyph(c: char) -> [&'static str; GLYPH_H] {
     match c.to_ascii_uppercase() {
         '0' => [".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###."],
@@ -45,8 +44,6 @@ fn glyph(c: char) -> [&'static str; GLYPH_H] {
     }
 }
 
-/// Draws `text` with its top-left corner at (x, y), each glyph cell being
-/// `px` device pixels wide/tall, with one cell of spacing between characters.
 pub fn draw_text(canvas: &mut Canvas<Window>, x: f32, y: f32, text: &str, color: (u8, u8, u8), px: f32) {
     set_color(canvas, color);
     let mut cursor_x = x;

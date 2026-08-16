@@ -1,7 +1,5 @@
 use crate::models::{Direction, Layout, Route};
 
-/// Point on the intersection box boundary where a vehicle travelling in
-/// `dir` crosses INTO the box, `off` lanes away from the centerline.
 pub fn box_entry(dir: Direction, off: f32, layout: &Layout) -> (f32, f32) {
     match dir {
         Direction::N => (layout.cx + off, layout.box_y_bottom()),
@@ -11,8 +9,6 @@ pub fn box_entry(dir: Direction, off: f32, layout: &Layout) -> (f32, f32) {
     }
 }
 
-/// Point on the intersection box boundary where a vehicle travelling in
-/// `dir` crosses OUT of the box.
 pub fn box_exit(dir: Direction, off: f32, layout: &Layout) -> (f32, f32) {
     match dir {
         Direction::N => (layout.cx + off, layout.box_y_top()),
@@ -22,7 +18,6 @@ pub fn box_exit(dir: Direction, off: f32, layout: &Layout) -> (f32, f32) {
     }
 }
 
-/// Point just inside the screen edge where a vehicle travelling in `dir` spawns.
 pub fn spawn_point(dir: Direction, off: f32, size: f32, layout: &Layout) -> (f32, f32) {
     match dir {
         Direction::N => (layout.cx + off, layout.h - size),
@@ -32,8 +27,6 @@ pub fn spawn_point(dir: Direction, off: f32, size: f32, layout: &Layout) -> (f32
     }
 }
 
-/// Point just beyond the far screen edge where a vehicle travelling in `dir`
-/// is considered to have fully left the canvas.
 pub fn end_point(dir: Direction, off: f32, size: f32, layout: &Layout) -> (f32, f32) {
     match dir {
         Direction::N => (layout.cx + off, -size),
@@ -53,8 +46,6 @@ pub fn exit_direction(dir: Direction, route: Route) -> Direction {
 
 const CURVE_SAMPLES: usize = 16;
 
-/// Builds the full waypoint polyline for a vehicle from spawn to off-screen,
-/// along with the cumulative arc length at each waypoint.
 pub fn build_path(dir: Direction, route: Route, layout: &Layout) -> (Vec<(f32, f32)>, Vec<f32>) {
     let unit = layout.vehicle_width;
     let off = route.lane_offset(unit);
@@ -103,7 +94,6 @@ pub fn build_path(dir: Direction, route: Route, layout: &Layout) -> (Vec<(f32, f
     (pts, cum)
 }
 
-/// Sample `n` points evenly spaced by arc length along a waypoint polyline.
 fn resample(pts: &[(f32, f32)], cum: &[f32], n: usize) -> Vec<(f32, f32)> {
     let total = *cum.last().unwrap_or(&0.0);
     let mut out = Vec::with_capacity(n);
@@ -122,10 +112,6 @@ fn resample(pts: &[(f32, f32)], cum: &[f32], n: usize) -> Vec<(f32, f32)> {
     out
 }
 
-/// Precomputed 12x12 table: does the in-box path of combo `i` ever come
-/// within `threshold` of the in-box path of combo `j`? Only meaningful for
-/// vehicles arriving from different directions (same-direction lanes are
-/// handled separately by car-following).
 pub fn build_conflict_table(threshold: f32) -> Vec<Vec<bool>> {
     let layout = Layout::new(crate::models::BASE_DIM, crate::models::BASE_DIM);
     let combos: Vec<(Direction, Route)> = Direction::ALL
@@ -133,7 +119,6 @@ pub fn build_conflict_table(threshold: f32) -> Vec<Vec<bool>> {
         .flat_map(|d| Route::ALL.iter().map(move |r| (*d, *r)))
         .collect();
 
-    // Only the segment strictly inside the intersection box matters for conflicts.
     let box_paths: Vec<Vec<(f32, f32)>> = combos
         .iter()
         .map(|(d, r)| {

@@ -401,7 +401,6 @@ fn draw_vehicles(
     }
 }
 
-/// Renders the end-of-simulation statistics screen.
 pub fn draw_stats(canvas: &mut Canvas<Window>, w: u32, h: u32, stats: &Stats) {
     set_color(canvas, models::COLOR_GROUND);
     canvas.clear();

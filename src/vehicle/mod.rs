@@ -74,19 +74,14 @@ impl Vehicle {
         self.progress >= self.total_len
     }
 
-    /// True while the vehicle is anywhere between entering and fully
-    /// clearing the intersection box.
     pub fn is_in_box(&self) -> bool {
         self.progress >= self.entry_arc && self.progress < self.exit_arc
     }
 
-    /// Remaining distance until this vehicle reaches the intersection box
-    /// (negative once it has already entered).
     pub fn remaining_to_entry(&self) -> f32 {
         self.entry_arc - self.progress
     }
 
-    /// Has this vehicle fully cleared the intersection box?
     pub fn has_cleared_box(&self) -> bool {
         self.progress >= self.exit_arc
     }
@@ -161,17 +156,13 @@ fn nearest_arc(pts: &[(f32, f32)], cum: &[f32], target: (f32, f32)) -> f32 {
 mod tests {
     use super::*;
 
-    /// Mirrors what `Simulation::update` does each frame: `distance =
-    /// velocity * dt`. Feeding that distance into `advance` should move the
-    /// vehicle such that recovering `velocity = distance / time` from the
-    /// actual position delta reproduces the original velocity.
     #[test]
     fn advance_moves_vehicle_by_velocity_times_time() {
         let layout = Layout::new(800, 800);
         let mut v = Vehicle::new(0, Direction::N, Route::Straight, &layout);
 
-        let velocity: f32 = 120.0; // px/s
-        let dt: f32 = 0.2; // s, small enough to stay on the first path segment
+        let velocity: f32 = 120.0;
+        let dt: f32 = 0.2;
         let distance = velocity * dt;
 
         let (x0, y0) = (v.x, v.y);
@@ -180,15 +171,12 @@ mod tests {
         v.velocity = velocity;
         v.advance(distance);
 
-        // progress (arc length) advanced by exactly the requested distance.
         let progress_moved = v.progress - progress0;
         assert!(
             (progress_moved - distance).abs() < 1e-4,
             "expected progress to move by {distance}, moved {progress_moved}"
         );
 
-        // Actual on-screen displacement, divided by elapsed time, recovers
-        // the original velocity: velocity = distance / time.
         let euclidean_moved = ((v.x - x0).powi(2) + (v.y - y0).powi(2)).sqrt();
         let recovered_velocity = euclidean_moved / dt;
         assert!(
