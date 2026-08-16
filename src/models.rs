@@ -31,16 +31,11 @@ pub const DASH_WIDTH: u32 = 2;
 pub const DASH_GAP: u32 = 8;
 pub const STOP_LINE_THICKNESS: u32 = 2;
 
-// Base (unscaled, BASE_DIM reference) physics constants. All are multiplied
-// by `Layout::scale` so behaviour is resolution independent.
 pub const BASE_SPEED_SLOW: f32 = 70.0;
 pub const BASE_SPEED_MEDIUM: f32 = 140.0;
 pub const BASE_SPEED_FAST: f32 = 230.0;
 
 pub const BASE_SAFETY_DISTANCE: f32 = 46.0;
-/// Center-to-center distance below which vehicles are considered to have
-/// actually collided (physical overlap), as opposed to merely violating the
-/// safety distance (a close call).
 pub const BASE_COLLISION_DISTANCE: f32 = VEHICLE_WIDTH as f32 * 0.6;
 pub const BASE_LANE_TOLERANCE: f32 = 30.0;
 pub const BASE_LOOKAHEAD_DISTANCE: f32 = 320.0;
@@ -69,7 +64,6 @@ impl Direction {
         }
     }
 
-    /// Unit vector pointing in the direction this vehicle travels (screen coords, y grows down).
     pub fn forward(&self) -> (f32, f32) {
         match self {
             Direction::N => (0.0, -1.0),
@@ -120,7 +114,6 @@ impl Route {
         }
     }
 
-    /// Offset of this route's lane from the road centerline, in "vehicle width" units.
     pub fn lane_offset(&self, unit: f32) -> f32 {
         match self {
             Route::Left => unit,
