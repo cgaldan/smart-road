@@ -159,7 +159,7 @@ fn load_sprite<'a>(
     let texture = load_texture(creator, name, png);
     let query = texture.query();
     assert!(
-        query.height > 0 && query.width % query.height == 0,
+        query.height > 0 && query.width.is_multiple_of(query.height),
         "{name} sprite must be a horizontal strip of square frames"
     );
     Sprite {
@@ -187,6 +187,11 @@ fn load_texture<'a>(
     texture
 }
 
+pub struct FrameOptions {
+    pub muted: bool,
+    pub animation_time: f32,
+}
+
 pub fn draw(
     canvas: &mut Canvas<Window>,
     layout: &models::Layout,
@@ -194,17 +199,16 @@ pub fn draw(
     textures: &VehicleTextures,
     background: &BackgroundTextures,
     music_controls: &MusicControlTextures,
-    muted: bool,
-    animation_time: f32,
+    options: FrameOptions,
 ) {
-    draw_background(canvas, background, animation_time);
+    draw_background(canvas, background, options.animation_time);
     draw_roads(canvas, layout);
     canvas.set_blend_mode(BlendMode::Blend);
 
     draw_lane_dividers(canvas, layout);
     draw_stop_lines(canvas, layout);
-    draw_vehicles(canvas, layout, vehicles, textures, animation_time);
-    draw_mute_button(canvas, music_controls, muted);
+    draw_vehicles(canvas, layout, vehicles, textures, options.animation_time);
+    draw_mute_button(canvas, music_controls, options.muted);
     canvas.present();
 }
 
@@ -264,15 +268,17 @@ fn scroll_background_layer(
 fn draw_roads(canvas: &mut Canvas<Window>, layout: &models::Layout) {
     let (red, green, blue) = models::COLOR_ROAD;
     canvas.set_draw_color(Color::RGBA(red, green, blue, models::ROAD_ALPHA));
-    fill(canvas, rect(layout.box_x_left(), 0.0, layout.road_width, layout.h));
-    fill(canvas, rect(0.0, layout.box_y_top(), layout.w, layout.road_width));
+    fill(
+        canvas,
+        rect(layout.box_x_left(), 0.0, layout.road_width, layout.h),
+    );
+    fill(
+        canvas,
+        rect(0.0, layout.box_y_top(), layout.w, layout.road_width),
+    );
 }
 
-fn draw_mute_button(
-    canvas: &mut Canvas<Window>,
-    controls: &MusicControlTextures,
-    muted: bool,
-) {
+fn draw_mute_button(canvas: &mut Canvas<Window>, controls: &MusicControlTextures, muted: bool) {
     let (canvas_width, _) = canvas.output_size().unwrap_or((0, 0));
     let button = mute_button_rect(canvas_width);
 
@@ -310,11 +316,33 @@ fn draw_main_divider(canvas: &mut Canvas<Window>, layout: &models::Layout, cx: f
     let main_dash_width = layout.dash_width * 2.0;
     fill(canvas, rect(cx, 0.0, main_dash_width, layout.box_y_top()));
     fill(canvas, rect(0.0, cy, layout.box_x_left(), main_dash_width));
-    fill(canvas, rect(cx, layout.box_y_bottom(), main_dash_width, layout.h - layout.box_y_bottom()));
-    fill(canvas, rect(layout.box_x_right(), cy, layout.w - layout.box_x_right(), main_dash_width));
+    fill(
+        canvas,
+        rect(
+            cx,
+            layout.box_y_bottom(),
+            main_dash_width,
+            layout.h - layout.box_y_bottom(),
+        ),
+    );
+    fill(
+        canvas,
+        rect(
+            layout.box_x_right(),
+            cy,
+            layout.w - layout.box_x_right(),
+            main_dash_width,
+        ),
+    );
 }
 
-fn draw_v_dashes(canvas: &mut Canvas<Window>, layout: &models::Layout, cx: f32, y_start: f32, y_end: f32) {
+fn draw_v_dashes(
+    canvas: &mut Canvas<Window>,
+    layout: &models::Layout,
+    cx: f32,
+    y_start: f32,
+    y_end: f32,
+) {
     let lane_step = layout.road_width / models::LANE_COUNT as f32;
     let step = layout.dash_length + layout.dash_gap;
 
@@ -330,7 +358,13 @@ fn draw_v_dashes(canvas: &mut Canvas<Window>, layout: &models::Layout, cx: f32, 
     }
 }
 
-fn draw_h_dashes(canvas: &mut Canvas<Window>, layout: &models::Layout, cy: f32, x_start: f32, x_end: f32) {
+fn draw_h_dashes(
+    canvas: &mut Canvas<Window>,
+    layout: &models::Layout,
+    cy: f32,
+    x_start: f32,
+    x_end: f32,
+) {
     let lane_step = layout.road_width / models::LANE_COUNT as f32;
     let step = layout.dash_length + layout.dash_gap;
 
@@ -424,13 +458,30 @@ pub fn draw_stats(canvas: &mut Canvas<Window>, w: u32, h: u32, stats: &Stats) {
     );
     y += font::text_height(title_px) + px * 6.0;
 
-    let min_v = if stats.has_data() { stats.min_velocity } else { 0.0 };
-    let min_t = if stats.has_data() { stats.min_time } else { 0.0 };
+    let min_v = if stats.has_data() {
+        stats.min_velocity
+    } else {
+        0.0
+    };
+    let min_t = if stats.has_data() {
+        stats.min_time
+    } else {
+        0.0
+    };
 
     let rows = [
-        ("VEHICLES PASSED".to_string(), format!("{}", stats.vehicles_passed)),
-        ("VEHICLES CREATED".to_string(), format!("{}", stats.vehicles_created)),
-        ("MAX VELOCITY".to_string(), format!("{:.1}", stats.max_velocity)),
+        (
+            "VEHICLES PASSED".to_string(),
+            format!("{}", stats.vehicles_passed),
+        ),
+        (
+            "VEHICLES CREATED".to_string(),
+            format!("{}", stats.vehicles_created),
+        ),
+        (
+            "MAX VELOCITY".to_string(),
+            format!("{:.1}", stats.max_velocity),
+        ),
         ("MIN VELOCITY".to_string(), format!("{:.1}", min_v)),
         ("MAX TIME".to_string(), format!("{:.2}", stats.max_time)),
         ("MIN TIME".to_string(), format!("{:.2}", min_t)),

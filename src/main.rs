@@ -1,18 +1,18 @@
-pub mod renderer;
-pub mod models;
-pub mod vehicle;
-pub mod simulation;
-pub mod helpers;
-pub mod geometry;
 pub mod font;
+pub mod geometry;
+pub mod helpers;
+pub mod models;
+pub mod renderer;
+pub mod simulation;
+pub mod vehicle;
 
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
+use models::{Direction, Layout};
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::video::FullscreenType;
-use models::{Direction, Layout};
 
 pub const WINDOW_W: u32 = 800;
 pub const WINDOW_H: u32 = 800;
@@ -65,19 +65,29 @@ fn main() {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'running,
-                Event::KeyDown { keycode: Some(Keycode::Escape), repeat: false, .. } => match state {
+                Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    repeat: false,
+                    ..
+                } => match state {
                     AppState::Running => {
                         sim.finalize_stats();
                         state = AppState::Stats;
                     }
                     AppState::Stats => break 'running,
                 },
-                Event::KeyDown { keycode: Some(Keycode::Return), repeat: false, .. }
-                    if state == AppState::Stats =>
-                {
+                Event::KeyDown {
+                    keycode: Some(Keycode::Return),
+                    repeat: false,
+                    ..
+                } if state == AppState::Stats => {
                     break 'running;
                 }
-                Event::KeyDown { keycode: Some(Keycode::F11), repeat: false, .. } => {
+                Event::KeyDown {
+                    keycode: Some(Keycode::F11),
+                    repeat: false,
+                    ..
+                } => {
                     let next_mode = if fullscreen {
                         FullscreenType::Off
                     } else {
@@ -96,29 +106,39 @@ fn main() {
                     sim.resize(&layout, &new_layout);
                     layout = new_layout;
                 }
-                Event::KeyDown { keycode: Some(Keycode::Up), repeat: false, .. }
-                    if state == AppState::Running =>
-                {
+                Event::KeyDown {
+                    keycode: Some(Keycode::Up),
+                    repeat: false,
+                    ..
+                } if state == AppState::Running => {
                     sim.try_spawn(Direction::N, helpers::random_route(), &layout);
                 }
-                Event::KeyDown { keycode: Some(Keycode::Down), repeat: false, .. }
-                    if state == AppState::Running =>
-                {
+                Event::KeyDown {
+                    keycode: Some(Keycode::Down),
+                    repeat: false,
+                    ..
+                } if state == AppState::Running => {
                     sim.try_spawn(Direction::S, helpers::random_route(), &layout);
                 }
-                Event::KeyDown { keycode: Some(Keycode::Left), repeat: false, .. }
-                    if state == AppState::Running =>
-                {
+                Event::KeyDown {
+                    keycode: Some(Keycode::Left),
+                    repeat: false,
+                    ..
+                } if state == AppState::Running => {
                     sim.try_spawn(Direction::W, helpers::random_route(), &layout);
                 }
-                Event::KeyDown { keycode: Some(Keycode::Right), repeat: false, .. }
-                    if state == AppState::Running =>
-                {
+                Event::KeyDown {
+                    keycode: Some(Keycode::Right),
+                    repeat: false,
+                    ..
+                } if state == AppState::Running => {
                     sim.try_spawn(Direction::E, helpers::random_route(), &layout);
                 }
-                Event::KeyDown { keycode: Some(Keycode::R), repeat: false, .. }
-                    if state == AppState::Running =>
-                {
+                Event::KeyDown {
+                    keycode: Some(Keycode::R),
+                    repeat: false,
+                    ..
+                } if state == AppState::Running => {
                     sim.toggle_random();
                 }
                 Event::MouseButtonDown { x, y, .. } if state == AppState::Running => {
@@ -154,8 +174,10 @@ fn main() {
                     &vehicle_textures,
                     &background_textures,
                     &music_control_textures,
-                    muted,
-                    (now - animation_start).as_secs_f32(),
+                    renderer::FrameOptions {
+                        muted,
+                        animation_time: (now - animation_start).as_secs_f32(),
+                    },
                 );
             }
             AppState::Stats => {

@@ -49,7 +49,10 @@ pub const RANDOM_SPAWN_INTERVAL_SECS: f32 = 0.5;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
-    N, S, W, E
+    N,
+    S,
+    W,
+    E,
 }
 
 impl Direction {
@@ -189,16 +192,24 @@ impl Layout {
         }
     }
 
-    pub fn box_x_right(&self) -> f32 { self.cx + self.road_width / 2.0 }
-    pub fn box_y_bottom(&self) -> f32 { self.cy + self.road_width / 2.0 }
-    pub fn box_x_left(&self) -> f32 { self.cx - self.road_width / 2.0 }
-    pub fn box_y_top(&self) -> f32 { self.cy - self.road_width / 2.0 }
+    pub fn box_x_right(&self) -> f32 {
+        self.cx + self.road_width / 2.0
+    }
+    pub fn box_y_bottom(&self) -> f32 {
+        self.cy + self.road_width / 2.0
+    }
+    pub fn box_x_left(&self) -> f32 {
+        self.cx - self.road_width / 2.0
+    }
+    pub fn box_y_top(&self) -> f32 {
+        self.cy - self.road_width / 2.0
+    }
 
     pub fn remap(&self, next: &Layout, x: f32, y: f32) -> (f32, f32) {
         let ratio = next.scale / self.scale;
         (
             next.cx + (x - self.cx) * ratio,
-            next.cy + (y - self.cy) * ratio
+            next.cy + (y - self.cy) * ratio,
         )
     }
 }

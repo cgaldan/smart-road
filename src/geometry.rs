@@ -104,7 +104,11 @@ fn resample(pts: &[(f32, f32)], cum: &[f32], n: usize) -> Vec<(f32, f32)> {
             seg += 1;
         }
         let seg_len = cum[seg + 1] - cum[seg];
-        let t = if seg_len > 0.0 { (target - cum[seg]) / seg_len } else { 0.0 };
+        let t = if seg_len > 0.0 {
+            (target - cum[seg]) / seg_len
+        } else {
+            0.0
+        };
         let (ax, ay) = pts[seg];
         let (bx, by) = pts[seg + 1];
         out.push((ax + (bx - ax) * t, ay + (by - ay) * t));
@@ -176,7 +180,12 @@ fn nearest_arc(pts: &[(f32, f32)], cum: &[f32], target: (f32, f32)) -> f32 {
     best_arc
 }
 
-fn sub_path(pts: &[(f32, f32)], cum: &[f32], from_arc: f32, to_arc: f32) -> (Vec<(f32, f32)>, Vec<f32>) {
+fn sub_path(
+    pts: &[(f32, f32)],
+    cum: &[f32],
+    from_arc: f32,
+    to_arc: f32,
+) -> (Vec<(f32, f32)>, Vec<f32>) {
     let mut out_pts = Vec::new();
     let mut out_cum = Vec::new();
     for (i, &arc) in cum.iter().enumerate() {

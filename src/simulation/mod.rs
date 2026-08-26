@@ -3,7 +3,10 @@ use std::time::Instant;
 
 use crate::geometry::build_conflict_table;
 use crate::helpers::{random_direction, random_route};
-use crate::models::{combo_index, Direction, Layout, Route, BASE_SAFETY_DISTANCE, MIN_SPAWN_INTERVAL_SECS, RANDOM_SPAWN_INTERVAL_SECS};
+use crate::models::{
+    BASE_SAFETY_DISTANCE, Direction, Layout, MIN_SPAWN_INTERVAL_SECS, RANDOM_SPAWN_INTERVAL_SECS,
+    Route, combo_index,
+};
 use crate::vehicle::Vehicle;
 
 pub struct Stats {
@@ -110,23 +113,27 @@ impl Simulation {
     pub fn update(&mut self, dt: f32, layout: &Layout) {
         if self.random_mode {
             let now = Instant::now();
-            if now.duration_since(self.last_random_spawn).as_secs_f32() >= RANDOM_SPAWN_INTERVAL_SECS {
+            if now.duration_since(self.last_random_spawn).as_secs_f32()
+                >= RANDOM_SPAWN_INTERVAL_SECS
+            {
                 self.last_random_spawn = now;
                 self.try_spawn(random_direction(), random_route(), layout);
             }
         }
 
-        let n = self.vehicles.len();
-        let mut targets = vec![0.0f32; n];
-        for i in 0..n {
-            targets[i] = self.target_speed_for(i, layout);
+        let mut targets = vec![0.0f32; self.vehicles.len()];
+        for (i, target) in targets.iter_mut().enumerate() {
+            *target = self.target_speed_for(i, layout);
         }
 
-        for i in 0..n {
-            let target = targets[i];
+        for (i, target) in targets.into_iter().enumerate() {
             let v = &mut self.vehicles[i];
             let dv = target - v.velocity;
-            let max_step = if dv >= 0.0 { layout.max_accel } else { layout.max_decel } * dt;
+            let max_step = if dv >= 0.0 {
+                layout.max_accel
+            } else {
+                layout.max_decel
+            } * dt;
             if dv.abs() <= max_step {
                 v.velocity = target;
             } else {
@@ -225,7 +232,11 @@ impl Simulation {
                 let a = &self.vehicles[i];
                 let b = &self.vehicles[j];
                 let d = ((a.x - b.x).powi(2) + (a.y - b.y).powi(2)).sqrt();
-                let key = if a.id < b.id { (a.id, b.id) } else { (b.id, a.id) };
+                let key = if a.id < b.id {
+                    (a.id, b.id)
+                } else {
+                    (b.id, a.id)
+                };
                 if d < layout.safety_distance {
                     current_violations.insert(key);
                 }
@@ -234,8 +245,10 @@ impl Simulation {
                 }
             }
         }
-        self.stats.close_calls += current_violations.difference(&self.violating_pairs).count() as u32;
-        self.stats.collisions += current_collisions.difference(&self.colliding_pairs).count() as u32;
+        self.stats.close_calls +=
+            current_violations.difference(&self.violating_pairs).count() as u32;
+        self.stats.collisions +=
+            current_collisions.difference(&self.colliding_pairs).count() as u32;
         self.violating_pairs = current_violations;
         self.colliding_pairs = current_collisions;
     }
@@ -251,8 +264,10 @@ impl Simulation {
                 self.stats.min_time = self.stats.min_time.min(elapsed);
                 self.stats.max_velocity = self.stats.max_velocity.max(v.max_velocity_reached);
                 self.stats.min_velocity = self.stats.min_velocity.min(v.min_velocity_reached);
-                self.violating_pairs.retain(|&(a, b)| a != v.id && b != v.id);
-                self.colliding_pairs.retain(|&(a, b)| a != v.id && b != v.id);
+                self.violating_pairs
+                    .retain(|&(a, b)| a != v.id && b != v.id);
+                self.colliding_pairs
+                    .retain(|&(a, b)| a != v.id && b != v.id);
             } else {
                 i += 1;
             }
@@ -333,14 +348,19 @@ mod tests {
             max_active,
         );
 
-        assert!(sim.stats.vehicles_created > 20, "expected sustained spawning");
-        assert!(sim.stats.vehicles_passed > 0, "no vehicle ever finished crossing");
+        assert!(
+            sim.stats.vehicles_created > 20,
+            "expected sustained spawning"
+        );
+        assert!(
+            sim.stats.vehicles_passed > 0,
+            "no vehicle ever finished crossing"
+        );
         assert!(
             min_dist_ever > layout.vehicle_width * 0.6,
             "vehicles overlapped: min_dist_ever={min_dist_ever}"
         );
     }
-
 
     #[test]
     fn detects_close_call_and_collision_thresholds() {
@@ -362,17 +382,29 @@ mod tests {
         assert_eq!(sim.stats.collisions, 0);
 
         let safe_gap = layout.safety_distance * 0.8;
-        assert!(safe_gap > layout.collision_distance, "test assumes safety_distance > collision_distance");
+        assert!(
+            safe_gap > layout.collision_distance,
+            "test assumes safety_distance > collision_distance"
+        );
         sim.vehicles[1].x = sim.vehicles[0].x + safe_gap;
         sim.vehicles[1].y = sim.vehicles[0].y;
         sim.detect_close_calls_and_collisions(&layout);
-        assert_eq!(sim.stats.close_calls, 1, "expected a new close call to be counted");
-        assert_eq!(sim.stats.collisions, 0, "gap is still outside collision distance");
+        assert_eq!(
+            sim.stats.close_calls, 1,
+            "expected a new close call to be counted"
+        );
+        assert_eq!(
+            sim.stats.collisions, 0,
+            "gap is still outside collision distance"
+        );
 
         let collide_gap = layout.collision_distance * 0.5;
         sim.vehicles[1].x = sim.vehicles[0].x + collide_gap;
         sim.detect_close_calls_and_collisions(&layout);
-        assert_eq!(sim.stats.collisions, 1, "expected a new collision to be counted");
+        assert_eq!(
+            sim.stats.collisions, 1,
+            "expected a new collision to be counted"
+        );
         assert_eq!(
             sim.stats.close_calls, 1,
             "same continuous violation shouldn't be double-counted as a close call"
@@ -396,7 +428,10 @@ mod tests {
         sim.vehicles.push(leader);
 
         let target = sim.target_speed_for(0, &layout);
-        assert_eq!(target, 0.0, "expected a hard stop when gap is within safety distance");
+        assert_eq!(
+            target, 0.0,
+            "expected a hard stop when gap is within safety distance"
+        );
     }
 
     #[test]
@@ -426,8 +461,14 @@ mod tests {
         let first_target = sim.target_speed_for(0, &layout);
         let second_target = sim.target_speed_for(1, &layout);
 
-        assert_eq!(first_target, layout.speed_fast, "closer vehicle should proceed at full speed");
-        assert_eq!(second_target, 0.0, "later vehicle on a conflicting route must yield/stop");
+        assert_eq!(
+            first_target, layout.speed_fast,
+            "closer vehicle should proceed at full speed"
+        );
+        assert_eq!(
+            second_target, 0.0,
+            "later vehicle on a conflicting route must yield/stop"
+        );
     }
 
     #[test]
@@ -452,10 +493,24 @@ mod tests {
 
         sim.remove_finished();
 
-        assert_eq!(sim.stats.vehicles_passed, 2, "both finished vehicles should be counted");
-        assert!(sim.vehicles.is_empty(), "finished vehicles should be removed from the active list");
-        assert!((sim.stats.max_velocity - 200.0).abs() < 0.01, "max_velocity={}", sim.stats.max_velocity);
-        assert!((sim.stats.min_velocity - 10.0).abs() < 0.01, "min_velocity={}", sim.stats.min_velocity);
+        assert_eq!(
+            sim.stats.vehicles_passed, 2,
+            "both finished vehicles should be counted"
+        );
+        assert!(
+            sim.vehicles.is_empty(),
+            "finished vehicles should be removed from the active list"
+        );
+        assert!(
+            (sim.stats.max_velocity - 200.0).abs() < 0.01,
+            "max_velocity={}",
+            sim.stats.max_velocity
+        );
+        assert!(
+            (sim.stats.min_velocity - 10.0).abs() < 0.01,
+            "min_velocity={}",
+            sim.stats.min_velocity
+        );
         assert!(sim.stats.max_time >= 4.9, "max_time={}", sim.stats.max_time);
         assert!(sim.stats.min_time <= 1.5, "min_time={}", sim.stats.min_time);
     }

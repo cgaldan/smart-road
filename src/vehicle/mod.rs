@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use crate::geometry::build_path;
 use crate::models::{
-    Direction, Layout, Route, COLOR_VEHICLE_LEFT, COLOR_VEHICLE_RIGHT, COLOR_VEHICLE_STRAIGHT,
+    COLOR_VEHICLE_LEFT, COLOR_VEHICLE_RIGHT, COLOR_VEHICLE_STRAIGHT, Direction, Layout, Route,
 };
 
 pub struct Vehicle {
